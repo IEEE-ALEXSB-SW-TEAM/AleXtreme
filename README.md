@@ -96,9 +96,9 @@ contest-system/
    Create a `.env` file in the backend directory:
    ```env
    PORT=5000
-   DATABASE_URL=your_database_connection_string
+   DATABASE_URL=your_db_url
    JWT_SECRET=your_jwt_secret
-   NODE_ENV=development
+   FRONTEND_CORS=http://localhost:5173
    ```
 
     Create a `.env` file in the frontend directory:
