@@ -83,28 +83,21 @@ exports.getMatrixLeaderboard = async (req, res) => {
           team_name: row.team_name,
           solved_count: row.solved_count,
           total_penalty: row.total_penalty,
-          problems: {}
+          problems: []
         });
       }
 
       const team = teamMap.get(row.team_id);
-      team.problems[row.problem_id] = {
+      team.problems.push({
         attempts: row.attempts,
         penalty: row.penalty,
         isSolved: row.is_solved === 1,
         isAttempted: row.is_attempted
-      };
+      });
     }
 
-    // Convert to array (already sorted by SQL - Map preserves insertion order)
-    const leaderboard = Array.from(teamMap.values()).map(team => ({
-      ...team,
-      problems: problems.map(p => ({
-        id: p.id,
-        title: p.title,
-        ...team.problems[p.id] || { attempts: 0, penalty: 0, isSolved: false, isAttempted: false }
-      }))
-    }));
+    // Return array directly (already sorted by SQL - Map preserves insertion order)
+    const leaderboard = Array.from(teamMap.values());
 
     res.json({
       problems,
