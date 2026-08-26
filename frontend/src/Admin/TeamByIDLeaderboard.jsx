@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import "../style/TeamByIDLeaderboard.css";
 import api from "../api";
 
 export const TeamByIDLeaderboard = () => {
+  const [searchParams] = useSearchParams();
+  const contestId = searchParams.get('contestId');
+  const { teamId } = useParams();
   const [teamData, setTeamData] = useState({
     team_id: null,
     team_name: "",
@@ -15,8 +18,6 @@ export const TeamByIDLeaderboard = () => {
     submissions: [],
     total_penalty: 0,
   });
-
-  const { contestId, teamId } = useParams();
 
   useEffect(() => {
     const fetchTeamData = async () => {

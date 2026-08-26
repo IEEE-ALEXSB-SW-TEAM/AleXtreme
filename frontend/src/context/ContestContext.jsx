@@ -1,6 +1,9 @@
-import { useState, useEffect } from "react";
-import { ContestContext } from "./ContextCreation";
+import { useState, useEffect, createContext } from "react";
 import api from "../api";
+
+const ContestContext = createContext();
+
+export { ContestContext };
 
 export const ContestProvider = ({ children, contestId }) => {
   const [timeLeft, setTimeLeft] = useState(null);

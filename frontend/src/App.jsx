@@ -13,12 +13,11 @@ import ProblemDetails from "./Components/ProblemDetails";
 import { ContestProvider } from "./context/ContestContext";
 import Logout from "./Auth/Logout";
 import "./App.css";
-import { AuthProvider } from "./context/AuthProvider";
+import { AuthProvider } from "./context/AuthContext";
 import { CONTEST_ID } from "./config/config";
 import { AdminLogin } from "./Admin/AdminLogin";
 import { AddContest } from "./Admin/AddContest";
 import { AdminDashboard } from "./Admin/AdminDashboard";
-import { DropProblemsFile } from "./Admin/DropProblemsFile";
 import { AdminLeaderboard } from "./Admin/AdminLeaderboard";
 import { TeamByIDLeaderboard } from "./Admin/TeamByIDLeaderboard";
 import { GenerateTeams } from "./Admin/GenerateTeams";
@@ -51,9 +50,8 @@ function App() {
             {/* Protected Admin Routes */}
             <Route path="/admin/dashboard"element={<AdminProtectedRoute><AdminDashboard /></AdminProtectedRoute>}/>
             <Route path="/admin/add-contest"element={<AdminProtectedRoute><AddContest /></AdminProtectedRoute>}/>
-            <Route path="/admin/drop-problems/:contestId"element={<AdminProtectedRoute><DropProblemsFile /></AdminProtectedRoute>}/>
-            <Route path="/admin/leaderboard/:contestId"element={<AdminProtectedRoute><AdminLeaderboard /></AdminProtectedRoute>}/>
-            <Route path="/admin/leaderboard/:contestId/team/:teamId"element={<AdminProtectedRoute><TeamByIDLeaderboard /></AdminProtectedRoute>}/>
+            <Route path="/admin/leaderboard"element={<AdminProtectedRoute><AdminLeaderboard /></AdminProtectedRoute>}/>
+            <Route path="/admin/leaderboard/team/:teamId"element={<AdminProtectedRoute><TeamByIDLeaderboard /></AdminProtectedRoute>}/>
             <Route path="/admin/generate-teams"element={<AdminProtectedRoute><GenerateTeams /></AdminProtectedRoute>}/>
             <Route path="/admin/submissions"element={<AdminProtectedRoute><AdminShowAllSubmission /></AdminProtectedRoute>}/>
             <Route path="/admin/submissions/:id"element={<AdminProtectedRoute><AdminShowSubmissonById /></AdminProtectedRoute>}/>

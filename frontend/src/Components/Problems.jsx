@@ -1,7 +1,7 @@
 import { useState, useContext, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../api";
-import { ContestContext } from "../context/ContextCreation";
+import { ContestContext } from "../context/ContestContext";
 import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Typography, Pagination, Box } from "@mui/material";
 import { Link as RouterLink } from "react-router-dom";
 import { CONTEST_ID } from "../config/config";

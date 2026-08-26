@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { CONTEST_ID } from "../config/config";
+import { Link, useSearchParams } from 'react-router-dom';
 import '../style/Leaderboard.css';
 import api from "../api";
 
 export const AdminLeaderboard = () => {
-  const contestId = CONTEST_ID;
+  const [searchParams] = useSearchParams();
+  const contestId = searchParams.get('contestId');
   const [leaderboard, setLeaderboard] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -67,7 +67,7 @@ export const AdminLeaderboard = () => {
                 <td className="table-cell">{index + 1}</td>
                 <td className="table-cell">
                   <Link 
-                    to={`/admin/leaderboard/${contestId}/team/${entry.team_id}`} 
+                    to={`/admin/leaderboard/team/${entry.team_id}?contestId=${contestId}`} 
                     className="team-link"
                     style={{ textDecoration: 'none', color: '#4682A9' }}
                   >

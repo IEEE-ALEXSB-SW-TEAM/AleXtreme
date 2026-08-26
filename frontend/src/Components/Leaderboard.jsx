@@ -6,7 +6,7 @@ import api from "../api";
 export const Leaderboard = () => {
   const [leaderboard, setLeaderboard] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const contestId = CONTEST_ID
+  const contestId = CONTEST_ID;
 
   useEffect(() => {
     const fetchLeaderBoard = async () => {
