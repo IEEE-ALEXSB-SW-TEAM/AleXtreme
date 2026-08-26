@@ -15,7 +15,11 @@ exports.register = async (req, res) => {
       [name, hash, institution]
     );
 
-    const token = jwt.sign({ id: result.rows[0].id, name }, JWT_SECRET, { expiresIn: '12h' });
+    const token = jwt.sign(
+      { id: result.rows[0].id, name, type: 'team' },
+      JWT_SECRET,
+      { expiresIn: '12h' }
+    );
     res.json({ token });
   } catch (err) {
     if (err.code === '23505') {
@@ -39,7 +43,11 @@ exports.login = async (req, res) => {
     const valid = await bcrypt.compare(password, result.rows[0].password);
     if (!valid) return res.status(401).json({ error: 'Invalid credentials' });
 
-    const token = jwt.sign({ id: result.rows[0].id, name }, JWT_SECRET, { expiresIn: '12h' });
+    const token = jwt.sign(
+      { id: result.rows[0].id, name, type: 'team' },
+      JWT_SECRET,
+      { expiresIn: '12h' }
+    );
     res.json({ token });
   } catch (err) {
     console.error(err);
@@ -48,7 +56,7 @@ exports.login = async (req, res) => {
 };
 
 exports.AdminRegister = async (req, res) => {
-  const {  username, password, email, role } = req.body;
+  const { username, password, email, role } = req.body;
   if (!username || !password || !email) return res.status(400).json({ error: 'Username, password, and email required' });
 
   try {
@@ -58,7 +66,11 @@ exports.AdminRegister = async (req, res) => {
       [username, hash, email, role || 'admin']
     );
 
-    const token = jwt.sign({ id: result.rows[0].id, username }, JWT_SECRET, { expiresIn: '1y' });
+    const token = jwt.sign(
+      { id: result.rows[0].id, username, type: 'admin' },
+      JWT_SECRET,
+      { expiresIn: '1y' }
+    );
 
     //cookie
     res.cookie('adminToken', token, {
@@ -67,7 +79,7 @@ exports.AdminRegister = async (req, res) => {
     });
 
     res.json({ token });
-  }catch (error){
+  } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Admin registration failed' });
   }
@@ -85,7 +97,11 @@ exports.AdminLogin = async (req, res) => {
     const valid = await bcrypt.compare(password, result.rows[0].password);
     if (!valid) return res.status(401).json({ error: 'Invalid credentials' });
 
-    const token = jwt.sign({ id: result.rows[0].id, username }, JWT_SECRET, { expiresIn: '1y' });
+    const token = jwt.sign(
+      { id: result.rows[0].id, username, type: 'admin' },
+      JWT_SECRET,
+      { expiresIn: '1y' }
+    );
 
     //cookie
     res.cookie('adminToken', token, {
