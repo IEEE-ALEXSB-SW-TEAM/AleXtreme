@@ -1,7 +1,7 @@
 import React, { useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import '../style/login.css';
-import { AuthContext } from '../context/ContextCreation';
+import { AuthContext } from '../context/AuthContext';
 import api from "../api";
 
 export const Login = () => {
@@ -23,7 +23,7 @@ export const Login = () => {
 
       if (response.data.token) {
         localStorage.setItem('token', response.data.token);
-        login();
+        login('contestant');
         navigate('/');
       } else {
         setError('Login failed');

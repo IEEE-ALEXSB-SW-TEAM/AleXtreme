@@ -1,0 +1,84 @@
+.contest-analytics {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.analytics-card {
+  background: white;
+  border-radius: 10px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.analytics-card h3 {
+  margin: 0 0 1rem 0;
+  color: #0F044C;
+  font-size: 1.25rem;
+}
+
+.analytics-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1rem;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  padding: 1rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border-left: 4px solid #4682A9;
+}
+
+.stat-item.highlight {
+  border-left-color: #28a745;
+  background: #d4edda;
+}
+
+.stat-label {
+  font-size: 0.875rem;
+  color: #787A91;
+  margin-bottom: 0.25rem;
+}
+
+.stat-value {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #0F044C;
+}
+
+.analytics-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.analytics-table th,
+.analytics-table td {
+  padding: 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.analytics-table th {
+  background-color: #141E61;
+  color: white;
+  font-weight: 600;
+}
+
+.analytics-table tbody tr:hover {
+  background-color: #f8f9fa;
+}
+
+.ratio-cell {
+  font-weight: 600;
+  color: #4682A9;
+}
+
+.analytics-loading,
+.analytics-error {
+  text-align: center;
+  padding: 2rem;
+  color: #787A91;
+}

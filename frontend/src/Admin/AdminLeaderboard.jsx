@@ -1,7 +1,6 @@
-import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { CONTEST_ID } from "../config/config";
-import '../style/Leaderboard.css';
+import React, { useEffect, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
+import "../style/Leaderboard.css";
 import api from "../api";
 
 import jsPDF from "jspdf";
@@ -11,29 +10,66 @@ import ieeeLogo from "../logo.png";
 import alextremeLogo from "../AleXtreme .png";
 
 export const AdminLeaderboard = () => {
-  const contestId = CONTEST_ID;
-  const [leaderboard, setLeaderboard] = useState([]);
+  const [searchParams] = useSearchParams();
+  const contestId = searchParams.get("contestId");
+
+  const [leaderboardData, setLeaderboardData] = useState({
+    problems: [],
+    leaderboard: [],
+  });
+
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     const fetchAdminLeaderboard = async () => {
       try {
-        const response = await api.get(`leaderboard/admin/${contestId}`);
-        setLeaderboard(response.data);
+        const response = await api.get(
+          `leaderboard/matrix/${contestId}`
+        );
+
+        setLeaderboardData(response.data);
       } catch (error) {
-        console.error('Error fetching leaderboard:', error);
+        console.error("Error fetching leaderboard:", error);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchAdminLeaderboard();
+    if (contestId) {
+      fetchAdminLeaderboard();
+    }
 
-    const interval = setInterval(fetchAdminLeaderboard, 10000);
+    const interval = setInterval(() => {
+      if (contestId) {
+        fetchAdminLeaderboard();
+      }
+    }, 10000);
 
     return () => clearInterval(interval);
   }, [contestId]);
+
+  const { problems, leaderboard } = leaderboardData;
+
+  // ============================================================
+  // MATRIX CELL HELPERS
+  // ============================================================
+
+  const getCellClass = (problemData) => {
+    if (!problemData.isAttempted) return "cell-grey";
+    if (problemData.isSolved) return "cell-green";
+    return "cell-red";
+  };
+
+  const getCellContent = (problemData) => {
+    if (!problemData.isAttempted) return "0--";
+
+    if (problemData.isSolved) {
+      return `${problemData.attempts}/${problemData.penalty}`;
+    }
+
+    return `${problemData.attempts}--`;
+  };
 
   // ============================================================
   // CONVERT IMAGE TO DATA URL
@@ -191,31 +227,41 @@ export const AdminLeaderboard = () => {
       );
 
       // --------------------------------------------------------
-      // LEADERBOARD TABLE
+      // MATRIX LEADERBOARD TABLE
       // --------------------------------------------------------
+
+      const tableHead = [
+        "Rank",
+        "Team Name",
+        "Solved",
+        "Penalty",
+        ...problems.map((problem) => problem.id),
+      ];
 
       const tableData = leaderboard.map((entry, index) => [
         index + 1,
         entry.team_name,
         entry.solved_count,
-        entry.total_submissions,
-        entry.wrong_submissions,
         entry.total_penalty,
-        entry.avg_penalty_per_solved,
+        ...problems.map((problem) => {
+          const problemData = entry.problems?.find(
+            (p) => p.id === problem.id
+          );
+
+          if (!problemData) return "0--";
+
+          return getCellContent(problemData);
+        }),
       ]);
+
+      // --------------------------------------------------------
+      // TABLE
+      // --------------------------------------------------------
 
       autoTable(doc, {
         startY: 65,
 
-        head: [[
-          "Rank",
-          "Team Name",
-          "Solved",
-          "Total Submissions",
-          "Wrong Submissions",
-          "Penalty",
-          "Avg. Penalty / Solved",
-        ]],
+        head: [tableHead],
 
         body: tableData,
 
@@ -223,8 +269,8 @@ export const AdminLeaderboard = () => {
 
         styles: {
           font: "helvetica",
-          fontSize: 10,
-          cellPadding: 4,
+          fontSize: 8,
+          cellPadding: 3,
           halign: "center",
           valign: "middle",
           textColor: [51, 51, 51],
@@ -234,7 +280,7 @@ export const AdminLeaderboard = () => {
           fillColor: [20, 30, 97],
           textColor: [255, 255, 255],
           fontStyle: "bold",
-          fontSize: 10,
+          fontSize: 8,
         },
 
         alternateRowStyles: {
@@ -243,43 +289,75 @@ export const AdminLeaderboard = () => {
 
         columnStyles: {
           0: {
-            cellWidth: 20,
+            cellWidth: 15,
             halign: "center",
           },
 
           1: {
-            cellWidth: 65,
+            cellWidth: 55,
             halign: "left",
           },
 
           2: {
-            cellWidth: 25,
+            cellWidth: 20,
           },
 
           3: {
-            cellWidth: 38,
-          },
-
-          4: {
-            cellWidth: 38,
-          },
-
-          5: {
-            cellWidth: 30,
-          },
-
-          6: {
-            cellWidth: 42,
+            cellWidth: 25,
           },
         },
 
         didParseCell: (data) => {
-          // Highlight the top 3 teams
+          // ----------------------------------------------------
+          // Highlight top 3 teams
+          // ----------------------------------------------------
+
           if (
             data.section === "body" &&
             data.row.index < 3
           ) {
             data.cell.styles.fontStyle = "bold";
+          }
+
+          // ----------------------------------------------------
+          // Color problem cells
+          // ----------------------------------------------------
+
+          if (
+            data.section === "body" &&
+            data.column.index >= 4
+          ) {
+            const team = leaderboard[data.row.index];
+
+            const problem =
+              problems[data.column.index - 4];
+
+            const problemData =
+              team?.problems?.find(
+                (p) => p.id === problem?.id
+              );
+
+            if (problemData) {
+              if (!problemData.isAttempted) {
+                data.cell.styles.fillColor = [
+                  230,
+                  230,
+                  230,
+                ];
+              } else if (problemData.isSolved) {
+                data.cell.styles.fillColor = [
+                  198,
+                  239,
+                  206,
+                ];
+              } else {
+                data.cell.styles.fillColor = [
+                  255,
+                  199,
+                  206,
+                ];
+              }
+            }
           }
         },
       });
@@ -318,11 +396,14 @@ export const AdminLeaderboard = () => {
       alert(
         "Failed to generate the leaderboard PDF."
       );
-
     } finally {
       setExporting(false);
     }
   };
+
+  // ============================================================
+  // RENDER
+  // ============================================================
 
   return (
     <div className="leaderboard-container">
@@ -407,9 +488,9 @@ export const AdminLeaderboard = () => {
 
         <p
           style={{
-            textAlign: 'center',
-            marginTop: '2rem',
-            color: '#787A91'
+            textAlign: "center",
+            marginTop: "2rem",
+            color: "#787A91",
           }}
         >
           No entries in the leaderboard yet.
@@ -417,93 +498,114 @@ export const AdminLeaderboard = () => {
 
       ) : (
 
-        <table className="leaderboard-table">
+        <div className="matrix-leaderboard-wrapper">
 
-          <thead>
-            <tr>
-              <th className="table-head-cell">
-                Rank
-              </th>
+          <table className="leaderboard-table matrix-table">
 
-              <th className="table-head-cell">
-                Team Name
-              </th>
+            <thead>
+              <tr>
 
-              <th className="table-head-cell">
-                Solved
-              </th>
+                <th className="table-head-cell">
+                  Rank
+                </th>
 
-              <th className="table-head-cell">
-                Total Submissions
-              </th>
+                <th className="table-head-cell">
+                  Team Name
+                </th>
 
-              <th className="table-head-cell">
-                Wrong Submissions
-              </th>
+                <th className="table-head-cell">
+                  Solved
+                </th>
 
-              <th className="table-head-cell">
-                Penalty
-              </th>
+                <th className="table-head-cell">
+                  Penalty
+                </th>
 
-              <th className="table-head-cell">
-                Avg Penalty / Solved
-              </th>
-            </tr>
-          </thead>
-
-          <tbody>
-
-            {leaderboard.map((entry, index) => (
-
-              <tr key={entry.team_id}>
-
-                <td className="table-cell">
-                  {index + 1}
-                </td>
-
-                <td className="table-cell">
-
-                  <Link
-                    to={`/admin/leaderboard/${contestId}/team/${entry.team_id}`}
-                    className="team-link"
-
-                    style={{
-                      textDecoration: 'none',
-                      color: '#4682A9'
-                    }}
+                {problems.map((problem) => (
+                  <th
+                    key={problem.id}
+                    className="table-head-cell problem-header"
                   >
-                    {entry.team_name}
-                  </Link>
-
-                </td>
-
-                <td className="table-cell">
-                  {entry.solved_count}
-                </td>
-
-                <td className="table-cell">
-                  {entry.total_submissions}
-                </td>
-
-                <td className="table-cell">
-                  {entry.wrong_submissions}
-                </td>
-
-                <td className="table-cell">
-                  {entry.total_penalty}
-                </td>
-
-                <td className="table-cell">
-                  {entry.avg_penalty_per_solved}
-                </td>
+                    {problem.id}
+                  </th>
+                ))}
 
               </tr>
+            </thead>
 
-            ))}
+            <tbody>
 
-          </tbody>
+              {leaderboard.map((entry, index) => (
 
-        </table>
+                <tr
+                  key={entry.team_id}
+                  className={
+                    index % 2 === 0
+                      ? "table-row-even"
+                      : "table-row-odd"
+                  }
+                >
+
+                  <td className="table-cell">
+                    {index + 1}
+                  </td>
+
+                  <td className="table-cell">
+
+                    <Link
+                      to={`/admin/leaderboard/team/${entry.team_id}?contestId=${contestId}`}
+                      className="team-link"
+                      style={{
+                        textDecoration: "none",
+                        color: "#4682A9",
+                      }}
+                    >
+                      {entry.team_name}
+                    </Link>
+
+                  </td>
+
+                  <td className="table-cell">
+                    {entry.solved_count}
+                  </td>
+
+                  <td className="table-cell">
+                    {entry.total_penalty}
+                  </td>
+
+                  {problems.map((problem) => {
+
+                    const problemData =
+                      entry.problems?.find(
+                        (p) => p.id === problem.id
+                      );
+
+                    return (
+                      <td
+                        key={problem.id}
+                        className={`table-cell matrix-cell ${
+                          problemData
+                            ? getCellClass(problemData)
+                            : "cell-grey"
+                        }`}
+                      >
+                        {problemData
+                          ? getCellContent(problemData)
+                          : "0--"}
+                      </td>
+                    );
+
+                  })}
+
+                </tr>
+
+              ))}
+
+            </tbody>
+
+          </table>
+
+        </div>
 
       )}
 

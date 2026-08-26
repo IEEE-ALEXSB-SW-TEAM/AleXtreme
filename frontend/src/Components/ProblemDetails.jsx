@@ -47,7 +47,7 @@ const ProblemDetails = () => {
             setNotFound(true);
             }
         });
-    }, [id, navigate]);
+    }, [contestId, id, navigate]);
 
     // LaTeX
     useEffect(() => {

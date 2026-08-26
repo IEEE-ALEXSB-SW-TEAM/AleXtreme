@@ -1,15 +1,12 @@
 import { useEffect, useContext } from "react";
 import { useNavigate } from "react-router-dom";
-import { AuthContext } from "../context/ContextCreation";
+import { AuthContext } from "../context/AuthContext";
 
 const Logout = () => {
   const { logout } = useContext(AuthContext);
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Clear stored authentication
-    localStorage.removeItem("token");
-
     logout();
 
     // Redirect to home

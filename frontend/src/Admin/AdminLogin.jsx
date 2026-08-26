@@ -1,12 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import '../style/login.css';
 import api from "../api";
+import { AuthContext } from '../context/AuthContext';
 export const AdminLogin = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const navigate = useNavigate();
+  const { login } = useContext(AuthContext);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -20,6 +22,7 @@ export const AdminLogin = () => {
 
       if (response.data.token) {
         localStorage.setItem('adminToken', response.data.token);
+        login('admin');
         navigate('/admin/dashboard'); // redirect to admin dashboard
       } else {
         setError('Login failed');

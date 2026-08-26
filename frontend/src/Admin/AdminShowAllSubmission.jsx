@@ -1,28 +1,29 @@
 import React, { useEffect, useState } from 'react';
-import { CONTEST_ID } from "../config/config";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import '../style/adminShowAllSubmission.css';
 import api from "../api";
 
 export const AdminShowAllSubmission = () => {
+  const [searchParams] = useSearchParams();
+  const contestId = searchParams.get('contestId');
   const [submissions, setSubmissions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const submissionsPerPage = 6; 
+  const submissionsPerPage = 6;
   const navigate = useNavigate();
 
   useEffect(() => {
     const fetchSubmissions = async () => {
       try {
-        const token = localStorage.getItem('adminToken'); 
+        const token = localStorage.getItem('adminToken');
         if (!token) {
           console.error("No admin token found. Please log in first.");
           return;
         }
 
         const response = await api.get(
-          `/submissions?contest_id=${CONTEST_ID}`,
+          `/submissions?contest_id=${contestId}`,
           {
             withCredentials: true,
             headers: { Authorization: `Bearer ${token}` }
@@ -38,7 +39,7 @@ export const AdminShowAllSubmission = () => {
     };
 
     fetchSubmissions();
-  }, []);
+  }, [contestId]);
 
   if (loading) return <div>Loading submissions...</div>;
   if (error) return <div className="error-message">{error}</div>;
@@ -53,7 +54,7 @@ export const AdminShowAllSubmission = () => {
     <div className="submissions-container">
       <div className="submissions-header">
         <h1>All Submissions</h1>
-        <p>Contest ID: {CONTEST_ID}</p>
+        <p>Contest ID: {contestId}</p>
       </div>
 
       {submissions.length === 0 ? (
