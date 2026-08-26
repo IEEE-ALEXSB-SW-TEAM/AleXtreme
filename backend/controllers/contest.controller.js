@@ -1,5 +1,15 @@
 const db = require('../config/db');
 
+exports.getAllContests = async (req, res) => {
+  try {
+    const result = await db.query('SELECT * FROM contests ORDER BY id');
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Error fetching contests:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+};
+
 exports.getContestById = async (req, res) => {
   const { id } = req.params;
   try {
