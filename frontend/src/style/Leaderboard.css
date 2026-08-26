@@ -160,3 +160,19 @@ body {
   color: #6c757d;
   border: 1px solid #dee2e6;
 }
+
+/* Analytics styles */
+.analytics-summary {
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+  margin-top: 1rem;
+  font-size: 1rem;
+  color: var(--color-gray-blue);
+}
+
+.problem-solve-ratio {
+  font-size: 0.75rem;
+  color: var(--color-light);
+  margin-top: 0.25rem;
+}

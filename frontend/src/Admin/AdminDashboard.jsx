@@ -4,6 +4,7 @@ import { AddContest } from "./AddContest";
 import { ProblemsManagement } from "./ProblemsManagement";
 import { AdminLeaderboard } from "./AdminLeaderboard";
 import { GenerateTeams } from "./GenerateTeams";
+import { ContestAnalytics } from "./ContestAnalytics";
 import "../style/AdminDashboard.css";
 import {AdminShowAllSubmission} from "./AdminShowAllSubmission";
 import api from "../api";
@@ -86,6 +87,12 @@ export const AdminDashboard = () => {
       <div className="admin-section leaderboard-section">
         <h2 className="section-title">🏆 Contest Leaderboard</h2>
         {selectedContest ? <AdminLeaderboard /> : <p>Please select a contest first</p>}
+      </div>
+
+      {/* Analytics section */}
+      <div className="admin-section analytics-section">
+        <h2 className="section-title">📊 Contest Analytics</h2>
+        {selectedContest ? <ContestAnalytics /> : <p>Please select a contest first</p>}
       </div>
 
       <div className="admin-section leaderboard-section">
