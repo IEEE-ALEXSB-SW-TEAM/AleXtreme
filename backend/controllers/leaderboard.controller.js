@@ -1,5 +1,121 @@
 const db = require('../config/db');
 
+// Matrix leaderboard - returns per-problem attempts/penalty for each team
+exports.getMatrixLeaderboard = async (req, res) => {
+  const { contestId } = req.params;
+
+  try {
+    // Single SQL query to get all submission data with penalties
+    const { rows: teamData } = await db.query(
+      `
+      WITH submission_stats AS (
+        SELECT
+          t.id AS team_id,
+          t.name AS team_name,
+          p.id AS problem_id,
+          COUNT(s.id) AS attempts,
+          MIN(CASE WHEN s.verdict = 'Accepted' THEN s.submitted_at END) AS first_accepted_at,
+          MAX(CASE WHEN s.verdict = 'Accepted' THEN 1 ELSE 0 END) AS is_solved,
+          c.start_time AS contest_start
+        FROM teams t
+        CROSS JOIN problems p
+        CROSS JOIN contests c
+        LEFT JOIN submissions s ON s.team_id = t.id AND s.problem_id = p.id AND s.contest_id = $1
+        WHERE p.contest_id = $1 AND c.id = $1
+        GROUP BY t.id, t.name, p.id, c.start_time
+      ),
+      with_penalties AS (
+        SELECT
+          team_id,
+          team_name,
+          problem_id,
+          attempts,
+          first_accepted_at,
+          is_solved,
+          CASE
+            WHEN is_solved = 1 AND first_accepted_at IS NOT NULL THEN
+              FLOOR(EXTRACT(EPOCH FROM (first_accepted_at - contest_start)) / 60)::INT + (attempts - 1) * 20
+            ELSE 0
+          END AS penalty,
+          attempts > 0 AS is_attempted
+        FROM submission_stats
+      ),
+      team_totals AS (
+        SELECT
+          team_id,
+          team_name,
+          SUM(is_solved) AS solved_count,
+          SUM(penalty) AS total_penalty
+        FROM with_penalties
+        GROUP BY team_id, team_name
+      )
+      SELECT
+        wp.team_id,
+        wp.team_name,
+        wp.problem_id,
+        wp.attempts,
+        wp.first_accepted_at,
+        wp.is_solved,
+        wp.penalty,
+        wp.is_attempted,
+        tt.solved_count,
+        tt.total_penalty
+      FROM with_penalties wp
+      JOIN team_totals tt ON tt.team_id = wp.team_id
+      ORDER BY tt.solved_count DESC, tt.total_penalty ASC, wp.team_id, wp.problem_id
+      `,
+      [contestId]
+    );
+
+    // Get all problems for this contest
+    const { rows: problems } = await db.query(
+      `SELECT id, title FROM problems WHERE contest_id = $1 ORDER BY id`,
+      [contestId]
+    );
+
+    // Group by team (already sorted by SQL) - use Map to preserve insertion order
+    const teamMap = new Map();
+
+    for (const row of teamData) {
+      if (!teamMap.has(row.team_id)) {
+        teamMap.set(row.team_id, {
+          team_id: row.team_id,
+          team_name: row.team_name,
+          solved_count: row.solved_count,
+          total_penalty: row.total_penalty,
+          problems: {}
+        });
+      }
+
+      const team = teamMap.get(row.team_id);
+      team.problems[row.problem_id] = {
+        attempts: row.attempts,
+        penalty: row.penalty,
+        isSolved: row.is_solved === 1,
+        isAttempted: row.is_attempted
+      };
+    }
+
+    // Convert to array (already sorted by SQL - Map preserves insertion order)
+    const leaderboard = Array.from(teamMap.values()).map(team => ({
+      ...team,
+      problems: problems.map(p => ({
+        id: p.id,
+        title: p.title,
+        ...team.problems[p.id] || { attempts: 0, penalty: 0, isSolved: false, isAttempted: false }
+      }))
+    }));
+
+    res.json({
+      problems,
+      leaderboard
+    });
+  } catch (err) {
+    console.error('Matrix Leaderboard Error:', err);
+    res.status(500).json({ error: 'Failed to load matrix leaderboard' });
+  }
+};
+
 exports.getLeaderboard = async (req, res) => {
   const { contestId } = req.params;
 
