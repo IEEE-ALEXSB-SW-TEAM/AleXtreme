@@ -6,30 +6,29 @@ exports.getLeaderboard = async (req, res) => {
   try {
     const { rows } = await db.query(
       `
+      WITH first_accepts AS (
+        SELECT
+          s.team_id,
+          s.problem_id,
+          MIN(s.submitted_at) AS first_accepted_at
+        FROM submissions s
+        WHERE s.verdict = 'Accepted'
+          AND s.contest_id = $1
+        GROUP BY s.team_id, s.problem_id
+      )
       SELECT
         t.id AS team_id,
         t.name AS team_name,
-        COUNT(DISTINCT s.problem_id) AS solved_count,
+        COUNT(DISTINCT fa.problem_id) AS solved_count,
         COALESCE(SUM(
-          CASE
-            WHEN s.verdict = 'Accepted' THEN
-              EXTRACT(EPOCH FROM s.submitted_at - c.start_time)/60 + (
-                SELECT COUNT(*) * 20
-                FROM submissions s2
-                WHERE
-                  s2.team_id = s.team_id AND
-                  s2.problem_id = s.problem_id AND
-                  s2.verdict != 'Accepted' AND
-                  s2.submitted_at < s.submitted_at
-              )
-            ELSE 0
-          END
+          EXTRACT(EPOCH FROM fa.first_accepted_at - c.start_time)/60 + (
+            (SELECT COUNT(*) FROM submissions s2
+             WHERE s2.team_id = fa.team_id AND s2.problem_id = fa.problem_id) - 1
+          ) * 20
         ), 0)::INT AS total_penalty
       FROM teams t
-      JOIN submissions s ON s.team_id = t.id
-      JOIN contests c ON c.id = s.contest_id
-      WHERE s.verdict = 'Accepted'
-        AND s.contest_id = $1
+      JOIN first_accepts fa ON fa.team_id = t.id
+      JOIN contests c ON c.id = $1
       GROUP BY t.id, t.name
       ORDER BY solved_count DESC, total_penalty ASC;
       `,
@@ -48,26 +47,26 @@ exports.adminLeaderboard = async (req, res) => {
   try {
     const { rows } = await db.query(
       `
-      WITH penalty_calc AS (
+      WITH first_accepts AS (
         SELECT
           s.team_id,
           s.problem_id,
-          MIN(
-            EXTRACT(EPOCH FROM s.submitted_at - c.start_time) / 60
-            + (
-              SELECT COUNT(*) * 20
-              FROM submissions s2
-              WHERE
-                s2.team_id = s.team_id
-                AND s2.problem_id = s.problem_id
-                AND s2.verdict != 'Accepted'
-                AND s2.submitted_at < s.submitted_at
-            )
-          ) AS penalty
+          MIN(s.submitted_at) AS first_accepted_at
         FROM submissions s
-        JOIN contests c ON c.id = s.contest_id
-        WHERE s.verdict = 'Accepted' AND c.id = $1
+        WHERE s.verdict = 'Accepted'
+          AND s.contest_id = $1
         GROUP BY s.team_id, s.problem_id
+      ),
+      penalty_calc AS (
+        SELECT
+          fa.team_id,
+          fa.problem_id,
+          EXTRACT(EPOCH FROM fa.first_accepted_at - c.start_time) / 60 + (
+            (SELECT COUNT(*) FROM submissions s2
+             WHERE s2.team_id = fa.team_id AND s2.problem_id = fa.problem_id) - 1
+          ) * 20 AS penalty
+        FROM first_accepts fa
+        JOIN contests c ON c.id = $1
       )
       SELECT
         t.id AS team_id,
@@ -134,18 +133,16 @@ exports.adminLeaderboardTeamByID = async (req, res) => {
           fa.problem_id,
           (
             FLOOR(EXTRACT(EPOCH FROM (fa.first_accepted_at - c.start_time)) / 60)::INT
-            + COALESCE(w.wrong_attempts, 0) * 20
+            + COALESCE(w.total_other_submissions, 0) * 20
           ) AS penalty
         FROM first_accepts fa
         JOIN contests c ON c.id = $1
         LEFT JOIN LATERAL (
-          SELECT COUNT(*) AS wrong_attempts
+          SELECT (COUNT(*) - 1) AS total_other_submissions
           FROM submissions s2
           WHERE s2.team_id = fa.team_id
             AND s2.problem_id = fa.problem_id
             AND s2.contest_id = $1
-            AND s2.submitted_at < fa.first_accepted_at
-            AND s2.verdict != 'Accepted'
         ) w ON true
       ),
       penalty_sum AS (
@@ -168,13 +165,11 @@ exports.adminLeaderboardTeamByID = async (req, res) => {
                 'id', p.id,
                 'title', p.title,
                 'accepted_at', fa2.first_accepted_at,
-                'wrong_attempts_before', (
-                  SELECT COUNT(*) FROM submissions s3
+                'total_other_submissions', (
+                  SELECT (COUNT(*) - 1) FROM submissions s3
                   WHERE s3.team_id = fa2.team_id
                     AND s3.problem_id = fa2.problem_id
                     AND s3.contest_id = $1
-                    AND s3.submitted_at < fa2.first_accepted_at
-                    AND s3.verdict != 'Accepted'
                 )
               )
             )
