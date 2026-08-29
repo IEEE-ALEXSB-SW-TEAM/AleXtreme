@@ -24,7 +24,9 @@ import { GenerateTeams } from "./Admin/GenerateTeams";
 import { AdminProtectedRoute } from "./Admin/AdminProtectedRoute";
 import { AdminShowAllSubmission } from "./Admin/AdminShowAllSubmission";
 import { AdminShowSubmissonById } from "./Admin/AdminShowSubmissonById";
-
+import Clarifications from "./Components/Clarifications";
+import { AdminClarifications } from "./Admin/AdminClarifications";
+import NotificationManager from "./Components/NotificationManager";
 
 function App() {
   return (
@@ -32,10 +34,12 @@ function App() {
       <AuthProvider>
         <Router>
           <Navbar />
+          <NotificationManager />
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/about" element={<About />} />
             <Route path="/problems" element={<Problems />} />
+            <Route path="/clarifications" element={<Clarifications />} />
             <Route path="/problems/:id" element={<ProblemDetails />} />
             <Route path={`/leaderboard/${CONTEST_ID}`} element={<Leaderboard />} />
             <Route path="/submissions/" element={<FetchAllYourSubmissions />} />
@@ -43,19 +47,82 @@ function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/logout" element={<Logout />} />
             <Route path="/register" element={<Register />} />
-
             {/* Admin Auth */}
             <Route path="/admin/login" element={<AdminLogin />} />
 
             {/* Protected Admin Routes */}
-            <Route path="/admin/dashboard"element={<AdminProtectedRoute><AdminDashboard /></AdminProtectedRoute>}/>
-            <Route path="/admin/add-contest"element={<AdminProtectedRoute><AddContest /></AdminProtectedRoute>}/>
-            <Route path="/admin/leaderboard"element={<AdminProtectedRoute><AdminLeaderboard /></AdminProtectedRoute>}/>
-            <Route path="/admin/leaderboard/team/:teamId"element={<AdminProtectedRoute><TeamByIDLeaderboard /></AdminProtectedRoute>}/>
-            <Route path="/admin/generate-teams"element={<AdminProtectedRoute><GenerateTeams /></AdminProtectedRoute>}/>
-            <Route path="/admin/submissions"element={<AdminProtectedRoute><AdminShowAllSubmission /></AdminProtectedRoute>}/>
-            <Route path="/admin/submissions/:id"element={<AdminProtectedRoute><AdminShowSubmissonById /></AdminProtectedRoute>}/>
+            {/* Protected Admin Routes */}
+            <Route
+              path="/admin/dashboard"
+              element={
+                <AdminProtectedRoute>
+                  <AdminDashboard />
+                </AdminProtectedRoute>
+              }
+            />
 
+            <Route
+              path="/admin/clarifications"
+              element={
+                <AdminProtectedRoute>
+                  <AdminClarifications />
+                </AdminProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/admin/add-contest"
+              element={
+                <AdminProtectedRoute>
+                  <AddContest />
+                </AdminProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/admin/leaderboard"
+              element={
+                <AdminProtectedRoute>
+                  <AdminLeaderboard />
+                </AdminProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/admin/leaderboard/team/:teamId"
+              element={
+                <AdminProtectedRoute>
+                  <TeamByIDLeaderboard />
+                </AdminProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/admin/generate-teams"
+              element={
+                <AdminProtectedRoute>
+                  <GenerateTeams />
+                </AdminProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/admin/submissions"
+              element={
+                <AdminProtectedRoute>
+                  <AdminShowAllSubmission />
+                </AdminProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/admin/submissions/:id"
+              element={
+                <AdminProtectedRoute>
+                  <AdminShowSubmissonById />
+                </AdminProtectedRoute>
+              }
+            />
           </Routes>
         </Router>
       </AuthProvider>
