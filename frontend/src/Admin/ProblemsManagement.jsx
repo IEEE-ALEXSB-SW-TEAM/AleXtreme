@@ -63,6 +63,7 @@ export const ProblemsManagement = () => {
   const [tabValue, setTabValue] = useState(0);
   const [isPreviewMode, setIsPreviewMode] = useState(false);
   const [originalFormData, setOriginalFormData] = useState(null);
+  const [showJsonUpload, setShowJsonUpload] = useState(false);
 
   useEffect(() => {
     fetchProblems();
@@ -129,6 +130,7 @@ export const ProblemsManagement = () => {
       toast.success("Problems uploaded successfully!");
       fetchProblems();
       setFile(null);
+      setShowJsonUpload(false);
     } catch (error) {
       if (error instanceof z.ZodError) {
         toast.error(`Validation error: ${error.errors[0].message}`);
@@ -328,13 +330,13 @@ export const ProblemsManagement = () => {
         <Button
           variant="outlined"
           startIcon={<UploadIcon />}
-          onClick={() => setIsAdding(!isAdding)}
+          onClick={() => setShowJsonUpload(!showJsonUpload)}
         >
           Upload JSON
         </Button>
       </Box>
 
-      {isAdding && (
+      {showJsonUpload && (
         <JsonUpload
           onFileChange={handleFileChange}
           onSubmit={handleJsonUpload}

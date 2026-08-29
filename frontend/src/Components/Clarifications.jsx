@@ -106,6 +106,35 @@ function Clarifications() {
   }, []);
 
   // ============================================================
+  // GROUP CLARIFICATIONS
+  // ============================================================
+  // The API returns a FLAT list of message rows (one row per
+  // team/admin message). Multiple rows can share the same
+  // clarification `id` (the original question + each reply).
+  // We group them here so each clarification renders as ONE
+  // card containing all of its messages, instead of rendering
+  // one full card per row (which was causing duplicates).
+
+  const groupedClarifications = Object.values(
+    clarifications.reduce((groups, item) => {
+      if (!groups[item.id]) {
+        groups[item.id] = {
+          id: item.id,
+          contest_id: item.contest_id,
+          problem_id: item.problem_id,
+          status: item.status,
+          created_at: item.created_at,
+          messages: [],
+        };
+      }
+
+      groups[item.id].messages.push(item);
+
+      return groups;
+    }, {})
+  );
+
+  // ============================================================
   // CREATE CLARIFICATION
   // ============================================================
 
@@ -593,7 +622,7 @@ function Clarifications() {
             </div>
           </div>
 
-          {clarifications.length === 0 ? (
+          {groupedClarifications.length === 0 ? (
             <Paper
               style={{
                 padding: "2.5rem",
@@ -640,9 +669,9 @@ function Clarifications() {
                 gap: "1.5rem",
               }}
             >
-              {clarifications.map((clarification) => (
+              {groupedClarifications.map((clarification) => (
                 <Paper
-                  key={`${clarification.id}-${clarification.message_id}`}
+                  key={clarification.id}
                   style={{
                     padding: "1.5rem",
                     borderRadius: "12px",
@@ -703,120 +732,115 @@ function Clarifications() {
                       gap: "1rem",
                     }}
                   >
-                    {clarifications
-                      .filter(
-                        (item) =>
-                          item.id === clarification.id
-                      )
-                      .map((messageItem) => {
-                        const isAdmin =
-                          messageItem.message_admin_id !== null;
+                    {clarification.messages.map((messageItem) => {
+                      const isAdmin =
+                        messageItem.message_admin_id !== null;
 
-                        return (
+                      return (
+                        <div
+                          key={messageItem.message_id}
+                          style={{
+                            display: "flex",
+                            flexDirection: "column",
+                            alignItems: isAdmin
+                              ? "flex-end"
+                              : "flex-start",
+                          }}
+                        >
+                          {/* MESSAGE LABEL */}
+
                           <div
-                            key={messageItem.message_id}
                             style={{
                               display: "flex",
-                              flexDirection: "column",
-                              alignItems: isAdmin
-                                ? "flex-end"
-                                : "flex-start",
+                              alignItems: "center",
+                              gap: "0.5rem",
+                              marginBottom: "0.35rem",
                             }}
                           >
-                            {/* MESSAGE LABEL */}
-
-                            <div
-                              style={{
-                                display: "flex",
-                                alignItems: "center",
-                                gap: "0.5rem",
-                                marginBottom: "0.35rem",
-                              }}
-                            >
-                              <Typography
-                                variant="body2"
-                                style={{
-                                  fontWeight: "bold",
-                                  color: isAdmin
-                                    ? "#141E61"
-                                    : "#555555",
-                                }}
-                              >
-                                {isAdmin
-                                  ? "🛡️ Administrator"
-                                  : "👥 Your Team"}
-                              </Typography>
-
-                              {isAdmin && (
-                                <Chip
-                                  label={
-                                    messageItem.visibility
-                                  }
-                                  size="small"
-                                  style={{
-                                    height: "22px",
-                                    fontSize: "0.68rem",
-                                    backgroundColor:
-                                      messageItem.visibility ===
-                                      "PUBLIC"
-                                        ? "#E8EAF6"
-                                        : "#EEEEEE",
-                                    color: "#141E61",
-                                    fontWeight: "bold",
-                                  }}
-                                />
-                              )}
-                            </div>
-
-                            {/* MESSAGE BUBBLE */}
-
-                            <div
-                              style={{
-                                maxWidth: "75%",
-                                padding: "1rem 1.2rem",
-                                borderRadius: isAdmin
-                                  ? "14px 14px 4px 14px"
-                                  : "14px 14px 14px 4px",
-
-                                backgroundColor: isAdmin
-                                  ? "#E8EAF6"
-                                  : "#F5F5F5",
-
-                                border: isAdmin
-                                  ? "1px solid #C5CAE9"
-                                  : "1px solid #E0E0E0",
-
-                                boxShadow:
-                                  "0 2px 8px rgba(0,0,0,0.06)",
-                              }}
-                            >
-                              <Typography
-                                style={{
-                                  color: "#333333",
-                                  lineHeight: "1.6",
-                                  whiteSpace: "pre-wrap",
-                                }}
-                              >
-                                {messageItem.message}
-                              </Typography>
-                            </div>
-
-                            {/* TIMESTAMP */}
-
                             <Typography
-                              variant="caption"
+                              variant="body2"
                               style={{
-                                color: "#787A91",
-                                marginTop: "0.3rem",
+                                fontWeight: "bold",
+                                color: isAdmin
+                                  ? "#141E61"
+                                  : "#555555",
                               }}
                             >
-                              {new Date(
-                                messageItem.message_created_at
-                              ).toLocaleString()}
+                              {isAdmin
+                                ? "🛡️ Administrator"
+                                : "👥 Your Team"}
+                            </Typography>
+
+                            {isAdmin && (
+                              <Chip
+                                label={
+                                  messageItem.visibility
+                                }
+                                size="small"
+                                style={{
+                                  height: "22px",
+                                  fontSize: "0.68rem",
+                                  backgroundColor:
+                                    messageItem.visibility ===
+                                    "PUBLIC"
+                                      ? "#E8EAF6"
+                                      : "#EEEEEE",
+                                  color: "#141E61",
+                                  fontWeight: "bold",
+                                }}
+                              />
+                            )}
+                          </div>
+
+                          {/* MESSAGE BUBBLE */}
+
+                          <div
+                            style={{
+                              maxWidth: "75%",
+                              padding: "1rem 1.2rem",
+                              borderRadius: isAdmin
+                                ? "14px 14px 4px 14px"
+                                : "14px 14px 14px 4px",
+
+                              backgroundColor: isAdmin
+                                ? "#E8EAF6"
+                                : "#F5F5F5",
+
+                              border: isAdmin
+                                ? "1px solid #C5CAE9"
+                                : "1px solid #E0E0E0",
+
+                              boxShadow:
+                                "0 2px 8px rgba(0,0,0,0.06)",
+                            }}
+                          >
+                            <Typography
+                              style={{
+                                color: "#333333",
+                                lineHeight: "1.6",
+                                whiteSpace: "pre-wrap",
+                              }}
+                            >
+                              {messageItem.message}
                             </Typography>
                           </div>
-                        );
-                      })}
+
+                          {/* TIMESTAMP */}
+
+                          <Typography
+                            variant="caption"
+                            style={{
+                              color: "#787A91",
+                              marginTop: "0.3rem",
+                            }}
+                          >
+                            {new Date(
+                              messageItem.message_created_at
+                            ).toLocaleString()}
+                          </Typography>
+                        </div>
+                      );
+                    })}
                   </div>
                 </Paper>
               ))}

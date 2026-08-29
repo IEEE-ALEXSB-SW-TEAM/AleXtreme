@@ -14,6 +14,7 @@ const Problems = () => {
   const [solvedProblems, setSolvedProblems] = useState(0);
   const contestId = CONTEST_ID;
   const { timeLeft, status } = useContext(ContestContext);
+  const [solvedIds, setSolvedIds] = useState([]);
 
 
   useEffect(() => {
@@ -40,6 +41,13 @@ const Problems = () => {
         setSolvedProblems(res.data.solvedCount);
       })
       .catch(err => console.error("Error fetching solved problems:", err));
+
+      api.get('/submissions/solved', {
+        headers: { Authorization: `Bearer ${token}` },
+        params: { contest_id: contestId }
+      })
+      .then(res => setSolvedIds(res.data))
+      .catch(err => console.error("Error fetching solved problems list:", err));
     }
   }, [status, contestId, navigate]);
 
@@ -70,18 +78,32 @@ const Problems = () => {
               </TableRow>
             </TableHead>
             <TableBody>
-              {displayedProblems.map((p) => (
-                <TableRow
-                  key={p.id}
-                  component={RouterLink}
-                  to={`/problems/${p.id}`}
-                  sx={{ backgroundColor: "white", cursor: "pointer", textDecoration: "none", "&:hover": { backgroundColor: "#e6f0ff" } }}
-                >
-                  <TableCell style={{ textAlign: "center", color: "#0F044C", borderBottom: "1px solid #787A91" }} >{p.id}</TableCell>
-                  <TableCell style={{ textAlign: "center", color: "#0F044C", borderBottom: "1px solid #787A91" }} >{p.title}</TableCell>
-                  <TableCell style={{ textAlign: "center", color: "#0F044C", borderBottom: "1px solid #787A91" }} >{p.contest_id}</TableCell>
-                </TableRow>
-              ))}
+              {displayedProblems.map((p) => {
+                const isSolved = solvedIds.includes(p.id);
+                return (
+                  <TableRow
+                    key={p.id}
+                    component={RouterLink}
+                    to={`/problems/${p.id}`}
+                    sx={{
+                      backgroundColor: isSolved ? "#E8F5E9" : "white",
+                      cursor: "pointer",
+                      textDecoration: "none",
+                      "&:hover": { backgroundColor: isSolved ? "#d4ecd6" : "#e6f0ff" }
+                    }}
+                  >
+                    <TableCell style={{ textAlign: "center", color: "#0F044C", borderBottom: "1px solid #787A91" }}>
+                      {p.id}
+                    </TableCell>
+                    <TableCell style={{ textAlign: "center", color: "#0F044C", borderBottom: "1px solid #787A91" }}>
+                      {p.title} {isSolved && <span style={{ color: "#00A300" }}>✔</span>}
+                    </TableCell>
+                    <TableCell style={{ textAlign: "center", color: "#0F044C", borderBottom: "1px solid #787A91" }}>
+                      {p.contest_id}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         </TableContainer>

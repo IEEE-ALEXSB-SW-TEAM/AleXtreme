@@ -71,6 +71,18 @@ export const AdminLeaderboard = () => {
     return `${problemData.attempts}--`;
   };
 
+  // NOTE: previously this looked up each team's per-problem data
+  // with `entry.problems?.find((p) => p.id === problem.id)`. That
+  // silently failed (every row showing 0--) because the objects
+  // inside `entry.problems` don't carry an `id` field that matches
+  // the top-level `problems` list's `id` — likely a different key
+  // name (e.g. `problem_id`) or a type mismatch (string vs number).
+  // The backend returns both arrays in the same order per team, so
+  // we match by position instead — this is exactly what the
+  // working (non-admin) Leaderboard component does by just mapping
+  // `team.problems` directly without any id lookup at all.
+  const getProblemDataAt = (entry, index) => entry.problems?.[index];
+
   // ============================================================
   // CONVERT IMAGE TO DATA URL
   // ============================================================
@@ -243,10 +255,8 @@ export const AdminLeaderboard = () => {
         entry.team_name,
         entry.solved_count,
         entry.total_penalty,
-        ...problems.map((problem) => {
-          const problemData = entry.problems?.find(
-            (p) => p.id === problem.id
-          );
+        ...problems.map((problem, pIndex) => {
+          const problemData = getProblemDataAt(entry, pIndex);
 
           if (!problemData) return "0--";
 
@@ -329,13 +339,9 @@ export const AdminLeaderboard = () => {
           ) {
             const team = leaderboard[data.row.index];
 
-            const problem =
-              problems[data.column.index - 4];
+            const pIndex = data.column.index - 4;
 
-            const problemData =
-              team?.problems?.find(
-                (p) => p.id === problem?.id
-              );
+            const problemData = getProblemDataAt(team, pIndex);
 
             if (problemData) {
               if (!problemData.isAttempted) {
@@ -573,12 +579,12 @@ export const AdminLeaderboard = () => {
                     {entry.total_penalty}
                   </td>
 
-                  {problems.map((problem) => {
+                  {problems.map((problem, pIndex) => {
 
-                    const problemData =
-                      entry.problems?.find(
-                        (p) => p.id === problem.id
-                      );
+                    const problemData = getProblemDataAt(
+                      entry,
+                      pIndex
+                    );
 
                     return (
                       <td

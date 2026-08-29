@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import NotificationPopup from "./NotificationPopup";
 import {
   getTeamClarifications,
@@ -11,7 +11,15 @@ import { CONTEST_ID } from "../config/config";
 const NotificationManager = () => {
   const [notification, setNotification] = useState(null);
 
-  const [initialized, setInitialized] = useState(false);
+  // Use a ref instead of state for the "have we baselined yet"
+  // flag. State resets to false every time this component
+  // remounts (e.g. on route changes, if it's not mounted at the
+  // app root) — which caused the baseline to be silently
+  // re-written on every remount, swallowing real notifications.
+  // A ref survives re-renders but is still per-mount, so we also
+  // lean on sessionStorage (which survives remounts) as the real
+  // source of truth for whether a baseline already exists.
+  const initializedRef = useRef(false);
 
   const token = localStorage.getItem("token");
   const adminToken = localStorage.getItem("adminToken");
@@ -35,35 +43,31 @@ const NotificationManager = () => {
           const clarifications = await getAllClarifications(adminToken);
 
           if (!clarifications || clarifications.length === 0) {
-            setInitialized(true);
+            initializedRef.current = true;
             return;
           }
-
-          /*
-            Each clarification message has a message_id.
-
-            We keep track of the messages that existed when the
-            admin first opened the website.
-          */
 
           const currentMessageIds = clarifications.map(
             (item) => item.message_id
           );
 
-          const storedIds = JSON.parse(
-            sessionStorage.getItem("adminSeenClarificationMessages") ||
-              "[]"
+          const storedIdsRaw = sessionStorage.getItem(
+            "adminSeenClarificationMessages"
           );
 
-          if (!initialized) {
+          // Baseline only if we've never stored anything before.
+          // (Not tied to initializedRef, so a remount doesn't
+          // wipe out a legitimate existing baseline.)
+          if (storedIdsRaw === null) {
             sessionStorage.setItem(
               "adminSeenClarificationMessages",
               JSON.stringify(currentMessageIds)
             );
-
-            setInitialized(true);
+            initializedRef.current = true;
             return;
           }
+
+          const storedIds = JSON.parse(storedIdsRaw);
 
           const newMessages = clarifications.filter(
             (item) =>
@@ -79,13 +83,14 @@ const NotificationManager = () => {
               message: `${newMessage.team_name} has submitted a new clarification for Problem ${newMessage.problem_id}.`,
               isAdmin: true,
             });
-
-            sessionStorage.setItem(
-              "adminSeenClarificationMessages",
-              JSON.stringify(currentMessageIds)
-            );
           }
 
+          sessionStorage.setItem(
+            "adminSeenClarificationMessages",
+            JSON.stringify(currentMessageIds)
+          );
+
+          initializedRef.current = true;
           return;
         }
 
@@ -117,46 +122,47 @@ const NotificationManager = () => {
 
           publicClarifications:
             currentData.publicClarifications.map(
-              (item) =>
-                `${item.message_id}-${item.created_at}`
+              (item) => `${item.message_id}-${item.created_at}`
             ),
 
           announcements: currentData.announcements.map(
-            (item) =>
-              `${item.id}-${item.created_at}`
+            (item) => `${item.id}-${item.created_at}`
           ),
         };
 
-        const storedData = JSON.parse(
-          sessionStorage.getItem("contestantNotificationData") ||
-            "null"
+        const storedDataRaw = sessionStorage.getItem(
+          "contestantNotificationData"
         );
 
         // ============================================================
-        // FIRST LOAD
+        // FIRST LOAD (only if no baseline exists at all — a
+        // component remount alone should NOT re-trigger this,
+        // otherwise real new messages get silently baselined
+        // away instead of triggering a popup)
         // ============================================================
 
-        if (!initialized || !storedData) {
+        if (storedDataRaw === null) {
           sessionStorage.setItem(
             "contestantNotificationData",
             JSON.stringify(currentIds)
           );
 
-          setInitialized(true);
+          initializedRef.current = true;
           return;
         }
+
+        const storedData = JSON.parse(storedDataRaw);
 
         // ============================================================
         // CHECK ANNOUNCEMENTS
         // ============================================================
 
-        const newAnnouncements =
-          currentData.announcements.filter(
-            (announcement) =>
-              !storedData.announcements.includes(
-                `${announcement.id}-${announcement.created_at}`
-              )
-          );
+        const newAnnouncements = currentData.announcements.filter(
+          (announcement) =>
+            !storedData.announcements.includes(
+              `${announcement.id}-${announcement.created_at}`
+            )
+        );
 
         if (newAnnouncements.length > 0) {
           const announcement = newAnnouncements[0];
@@ -180,12 +186,8 @@ const NotificationManager = () => {
               )
           );
 
-        if (
-          newPublicClarifications.length > 0 &&
-          !newAnnouncements.length
-        ) {
-          const clarification =
-            newPublicClarifications[0];
+        if (newPublicClarifications.length > 0 && !newAnnouncements.length) {
+          const clarification = newPublicClarifications[0];
 
           setNotification({
             title: "New Public Clarification",
@@ -198,14 +200,12 @@ const NotificationManager = () => {
         // CHECK PRIVATE / TEAM CLARIFICATIONS
         // ============================================================
 
-        const newTeamMessages =
-          currentData.clarifications.filter(
-            (clarification) =>
-              !storedData.clarifications.includes(
-                `${clarification.id}-${clarification.message_id}-${clarification.message_created_at}`
-              ) &&
-              clarification.message_admin_id !== null
-          );
+        const newTeamMessages = currentData.clarifications.filter(
+          (clarification) =>
+            !storedData.clarifications.includes(
+              `${clarification.id}-${clarification.message_id}-${clarification.message_created_at}`
+            ) && clarification.message_admin_id !== null
+        );
 
         if (
           newTeamMessages.length > 0 &&
@@ -229,11 +229,10 @@ const NotificationManager = () => {
           "contestantNotificationData",
           JSON.stringify(currentIds)
         );
+
+        initializedRef.current = true;
       } catch (error) {
-        console.error(
-          "Notification check failed:",
-          error
-        );
+        console.error("Notification check failed:", error);
       }
     };
 
@@ -241,15 +240,15 @@ const NotificationManager = () => {
     checkForNotifications();
 
     // Check every 5 seconds
-    interval = setInterval(
-      checkForNotifications,
-      5000
-    );
+    interval = setInterval(checkForNotifications, 5000);
 
     return () => {
       clearInterval(interval);
     };
-  }, [token, adminToken, isAdmin, initialized]);
+    // Intentionally NOT depending on an "initialized" flag —
+    // that was tearing down and rebuilding the interval (and
+    // resetting the baseline logic) on every state change.
+  }, [token, adminToken, isAdmin]);
 
   return (
     <NotificationPopup

@@ -182,8 +182,8 @@ const ProblemDetails = () => {
                     </Paper>
 
                     <Typography variant="subtitle1" style={{ color: "#141E61" }}>Sample Output {index + 1}</Typography>
-                    <Paper style={{backgroundColor: "#f5f5f5",padding: "0.5rem",borderRadius: "10px", position: "relative"}}><pre>{test.expected_output}</pre>
-                    <Button size="small" style={{ position: "absolute", top: 5, right: 5 }} onClick={() => navigator.clipboard.writeText(test.expected_output)}>
+                    <Paper style={{backgroundColor: "#f5f5f5",padding: "0.5rem",borderRadius: "10px", position: "relative"}}><pre>{test.output}</pre>
+                    <Button size="small" style={{ position: "absolute", top: 5, right: 5 }} onClick={() => navigator.clipboard.writeText(test.output)}>
                         <ContentCopy fontSize="small" />
                     </Button>
                     </Paper>

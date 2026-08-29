@@ -146,3 +146,23 @@ exports.getSubmissionByIdPublic = async (req, res) => {
     res.status(500).json({ error: 'Could not fetch submission' });
   }
 }
+
+// Get the list of problem IDs this team has solved (Accepted) in a contest
+exports.getSolvedProblems = async (req, res) => {
+  const teamId = req.user.id;
+  const contestId = req.query.contest_id;
+
+  try {
+    const { rows } = await db.query(
+      `SELECT DISTINCT problem_id
+       FROM submissions
+       WHERE team_id = $1 AND contest_id = $2 AND verdict = 'Accepted'`,
+      [teamId, contestId]
+    );
+
+    res.json(rows.map(r => r.problem_id)); // e.g. ["A", "C"]
+  } catch (err) {
+    console.error('Error fetching solved problems:', err.message);
+    res.status(500).json({ error: 'Could not fetch solved problems' });
+  }
+};
